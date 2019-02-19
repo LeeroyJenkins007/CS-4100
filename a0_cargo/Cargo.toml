@@ -1,0 +1,7 @@
+[package]
+name = "a0_cargo"
+version = "0.1.0"
+authors = ["Greg Jenkins <gj585518@ohio.edu>"]
+edition = "2018"
+
+[dependencies]
