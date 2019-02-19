@@ -1,0 +1,25 @@
+Process:
+-Read in binary file
+-convert binary to Instr
+-Implement execution loop
+-Print last item in stack to file and std::out
+
+
+
+Exectution loop:
+Switch dispach vs. threaded dispatch
+
+Rust -> Switch
+C++ -> Threaded
+
+use a Makefile for this assignment (3 targets)
+-Build
+-Run (must be able to use cmd line args)
+-Clean
+
+Makefile should use cargo build --release
+
+Switch:
+	Think functional programing
+
+
