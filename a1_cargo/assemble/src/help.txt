@@ -1,0 +1,71 @@
+Read Assmebly
+Get Label Locations
+Convert Strings to Instrs
+Convert Instr to bytecode
+Write Bytcode
+
+
+get command line arguments for the file
+
+
+
+set pc=0
+check if label 
+if not pc++
+if so save pc and label name, do not increment the pc
+
+hash map {"Lmain":4}
+
+dumb questions: do we assume the assembly we get is correct label or instr
+
+setframe 0
+BigEndian
+write_u32(0) => [0,0,0,0]
+have a vector [] -> [11]+[0,0,0,0]->[11,0,0,0,0]
+
+
+
+push(Vloc(4))
+[]->[4 + ...] then push= []->[0]+[4,0,0,0,4]
+
+at the end all should be appended to one vector to represent the whole program
+
+
+create a trait ToBin will contian a single function
+called to_bin(self: &self) -> Vec<u8>
+do it for u32, i32, val, unop, binop, instructions
+
+end result is a single vector of u8
+
+let mut output = File::create("filename")?;
+call fs::write(&mut output, &vector);
+
+<i as ToBin>::to_bin(i);
+Val::to_bin(val1);
+
+impl ToBin for u32 {
+	fn to_bin(self: &self) -> Vec<u8>{
+		...
+	}
+}
+
+
+let v = vec![]
+match self {
+	Vunit => v.push(0),
+	Vi32(i) => {v.push(1);
+	v.append(<i as ToBin>::to_bin(i));},
+}
+
+if label get redifined, exit out like more than on Lmain:
+
+
+byteorder for u32 and i32
+
+
+HOUSEKEEPING QUESTIONS:
+am i taking in files correctly?
+how to cycle through twice without wasting so much space?
+how to get the file name from cargo run "filename.s" so I can rename it to "filename.o"
+
+

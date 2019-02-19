@@ -1,0 +1,1 @@
+{"rustc":11779505878581416876,"features":"[]","target":11776243251688052076,"profile":17962889271107950383,"path":1036222786711178230,"deps":[["byteorder v1.3.1","byteorder",6347477311389301931]],"local":[{"MtimeBased":[[1550180698,185565529],".fingerprint/assemble-76aeefb309c7fd09/dep-bin-assemble-76aeefb309c7fd09"]}],"rustflags":[],"edition":"Edition2018"}
