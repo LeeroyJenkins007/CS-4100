@@ -23,3 +23,26 @@ Switch:
 	Think functional programing
 
 
+
+LAB DAY 2:
+--------------------------------------------------------------------------
+-Read in Binary Files:
+fs::read(file, bytes) <- should fille up a vecotor of unsigned 32 bit bytes
+
+From Bin
+
+"Just do what we did in the end of PA1 for the start of PA2"
+
+
+-Convert Binary to Instructions
+
+
+bytes = [0010101001 0010 1001101 01010 0101]
+
+&[u8] <- slice 
+&bytes[0..4] gets the program length for expample
+
+
+
+
+
