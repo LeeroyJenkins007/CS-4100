@@ -42,6 +42,58 @@ bytes = [0010101001 0010 1001101 01010 0101]
 &[u8] <- slice 
 &bytes[0..4] gets the program length for expample
 
+fs::read(file_name) -> Result<Vec<u8>>
+
+fs::read(file_name).unwrap() -> Vec<u8>
+
+call this ^ file_contents
+
+file_contents.iter() -> Iter<u8>  ///What about iter_mut()
+
+call this ^ iterator -> mut iterator
+
+iterator.next() -> u8
+
+why not just pass a reference to the Vec<u8> and start index
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

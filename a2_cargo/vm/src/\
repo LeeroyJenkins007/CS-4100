@@ -1,0 +1,183 @@
+use std::io;
+use byteorder::ByteOrder;
+use std::slice::Iter;
+use std::env;
+use std::fs;
+use std::io::Read;
+use std::io::BufRead;
+use std::fs::File;
+use std::io::Write;
+use std::io::BufReader;
+use byteorder::{BigEndian};
+
+
+pub trait FromBin {
+//    fn from_bin(slice: u8, mut iter: Iter<u8>) -> Self;
+        fn from_bin(mut iter: Iter<u8>) -> Self;
+}
+
+impl FromBin for Instr {
+//    fn from_bin(slice: u8, mut iter: Iter<u8>) -> Self{
+        fn from_bin(mut iter: Iter<u8>) -> Self{
+        println!("From binary to Instr");
+        let slice = *iter.next().unwrap();
+        println!("Current slice: {}", slice);
+//        match slice {
+            match slice {
+            0 => {Instr::Push(Val::from_bin(iter))},
+            1 => {Instr::Pop},
+            2 => {Instr::Peek(100)},
+            3 => {Instr::Unary(Unop::Neg)},
+            4 => {Instr::Binary(Binop::Add)},
+            5 => {Instr::Swap},
+            6 => {Instr::Alloc},
+            7 => {Instr::Set},
+            8 => {Instr::Get},
+            9 => {Instr::Var(101)},
+            10 => {Instr::Store(102)},
+            11 => {Instr::SetFrame(103)},
+            12 => {Instr::Call},
+            13 => {Instr::Ret},
+            14 => {Instr::Branch},
+            15 => {Instr::Halt},
+            _ => panic!("Invalid Instruction"),
+        }
+//        Instr::Pop
+    }
+}
+
+impl FromBin for Val {
+//    fn from_bin(slice: u8, mut iter: Iter<u8>) -> Self{
+        fn from_bin(mut iter: Iter<u8>) -> Self{
+        println!("From binary to Value");
+//        match slice {
+            match *iter.next().unwrap() {
+            0 => {Val::Vunit},
+            1 => {Val::Vi32(i32::from_bin(iter))},
+            2 => {Val::Vbool(true)},
+            3 => {Val::Vbool(false)},
+            4 => {Val::Vloc(102436)},
+            5 => {Val::Vundef},
+            _ => panic!("Invalid Value"),
+        }
+//        Val::Vunit
+    }
+}
+
+impl FromBin for Unop {
+//    fn from_bin(slice: u8, mut iter: Iter<u8>) -> Self{
+        fn from_bin(mut iter: Iter<u8>) -> Self{
+        println!("From binary to Unop");
+        Unop::Neg
+    }
+}
+
+impl FromBin for Binop {
+//    fn from_bin(slice: u8, mut iter: Iter<u8>) -> Self{
+        fn from_bin(mut iter: Iter<u8>) -> Self{
+        println!("From binary to Binop");
+        Binop::Add
+    }
+}
+
+impl FromBin for i32 {
+//    fn from_bin(slice: u8, mut iter: Iter<u8>) -> Self{
+    fn from_bin(mut iter: Iter<u8>) -> Self{
+        println!("From binary to i32");
+        let mut i_32_byte = Vec::new();
+        i_32_byte.push(*iter.next().unwrap());
+        i_32_byte.push(*iter.next().unwrap());
+        i_32_byte.push(*iter.next().unwrap());
+        i_32_byte.push(*iter.next().unwrap());
+//        let i_32_byte = i_32_byte[0..3].read_i32::<BigEndian>().unwrap();
+        let byte_vector = BigEndian::read_i32(&i_32_byte);
+        byte_vector
+//        -100
+    }
+}
+
+impl FromBin for u32 {
+//    fn from_bin(slice: u8, mut iter: Iter<u8>) -> Self{
+        fn from_bin(mut iter: Iter<u8>) -> Self{
+    println!("From binary to u32");
+//        let mut u_32_byte = Vec::new();
+        let mut u_32_byte: Vec<u8> = Vec::new();
+        u_32_byte.push(*iter.next().unwrap());
+        println!("Pushed 1");
+        u_32_byte.push(*iter.next().unwrap());
+        println!("Pushed 2");
+        u_32_byte.push(*iter.next().unwrap());
+        println!("Pushed 3");
+        u_32_byte.push(*iter.next().unwrap());
+        println!("Pushed 4");
+        let byte_vector = BigEndian::read_u32(&u_32_byte);
+        byte_vector
+    }
+}
+
+
+enum Val {
+    Vunit,
+    Vi32(i32),
+    Vbool(bool),
+    Vloc(u32),
+    Vundef,
+}
+
+enum Instr {
+    Push(Val),
+    Pop,
+    Peek(u32),
+    Unary(Unop),
+    Binary(Binop),
+    Swap,
+    Alloc,
+    Set,
+    Get,
+    Var(u32),
+    Store(u32),
+    SetFrame(u32),
+    Call,
+    Ret,
+    Branch,
+    Halt,
+}
+
+enum Unop {
+    Neg,
+}
+
+enum Binop {
+    Add,
+    Mul,
+    Sub,
+    Div,
+    Lt,
+    Eq,
+}
+
+fn main() -> io::Result<()>{
+    let mut file_content = Vec::new();
+    let mut stack_instr: Vec<Instr> = Vec::new();
+
+    let args: Vec<String> = env::args().collect();
+    let file = File::open(&args[1])?;
+    let mut file = BufReader::new(file);
+
+    file.read_to_end(&mut file_content);
+    let mut iterator = file_content.iter();
+//    let program_size: u32 = u32::from_bin(*slice, iterator.clone());
+    let program_size: u32 = u32::from_bin(iterator.clone());
+    println!("Program size: {}", program_size);
+//    let mut i = 1;
+    file_content.iter().next();
+//    for slice in &file_content {
+//        stack_instr.push(Instr::from_bin(iterator.clone()));
+    for i in 1..program_size {
+        stack_instr.push(Instr::from_bin(file_content.iter()));
+        println!("SLICE NUMBER: {}", i);
+    }
+//    }
+
+    Ok(())
+}

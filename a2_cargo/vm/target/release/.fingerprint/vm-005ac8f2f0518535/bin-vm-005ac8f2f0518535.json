@@ -1,0 +1,1 @@
+{"rustc":11779505878581416876,"features":"[]","target":13979098913963895524,"profile":5060393583489210841,"path":1036222786711178230,"deps":[["byteorder v1.3.1","byteorder",13541395793029807686]],"local":[{"MtimeBased":[[1551609652,620371472],".fingerprint/vm-005ac8f2f0518535/dep-bin-vm-005ac8f2f0518535"]}],"rustflags":[],"edition":"Edition2018"}
