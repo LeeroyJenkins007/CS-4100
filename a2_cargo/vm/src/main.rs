@@ -2,14 +2,14 @@ use std::io;
 use byteorder::ByteOrder;
 use std::slice::Iter;
 use std::env;
-//use std::fs;
 use std::io::Read;
-//use std::io::BufRead;
 use std::fs::File;
-//use std::io::Write;
 use std::io::BufReader;
 use byteorder::{BigEndian};
 
+
+const HEAP_SIZE: u32 = 1024;
+const STACK_SIZE: u32 = 1024;
 
 pub trait FromBin {
         fn from_bin(iter: &mut Iter<u8>) -> Self;
@@ -301,9 +301,13 @@ fn main() -> io::Result<()>{
                     let heap_size = program_state.stack.pop().unwrap();
                     if let Val::Vi32(size) = heap_size {
                         program_state.stack.push(Val::Vaddr(program_state.heap.len()));
-                        program_state.heap.push(Val::Vsize(size));
-                        for i in 1..size + 1{
-                            program_state.heap.push(unit.clone());
+                        if ((program_state.heap.len() as u32) + (size as u32)) < HEAP_SIZE {
+                            program_state.heap.push(Val::Vsize(size));
+                            for i in 1..size + 1{
+                                program_state.heap.push(unit.clone());
+                            }
+                        }else {
+                            panic!("Alloc expands Heap size beyond {}", HEAP_SIZE);
                         }
                     }
                 },
