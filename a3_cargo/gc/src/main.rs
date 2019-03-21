@@ -171,7 +171,6 @@ fn forward(from_addr: &usize, from_heap: &Vec<Val>, to_heap: &mut Vec<Val>, addr
         //to_heap.push(*from_heap.get(*from_addr).unwrap());
         to_heap.push(chunk);
         address_track.insert(*from_addr, to_heap.len() - 1);
-
     }else {
         println!("Chunk was already copied over");
     }
@@ -185,9 +184,10 @@ fn collect_garbage(heap: &mut Vec<Val>, stack: &mut Vec<Val>, size: u32) {
     println!("GC start: heap_size = {} values", heap.len());
     println!("STACK LEN {}", stack.len()); 
     for index in 0..stack.len() {
-        println!("ITER #{}", index);
         if let Val::Vaddr(from_addr) = stack.get(index).unwrap() {
             forward(from_addr, &heap, &mut to_space, &mut address_track);
+            //Pull out the old address value and replace it with the new address updated after the
+            //forward function call
         }
     }
     println!("GC end: heap_size = {} values", heap.len());
