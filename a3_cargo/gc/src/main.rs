@@ -160,7 +160,7 @@ pub struct State {
     pub program: Vec<Instr>
 }
 
-fn forward(from_addr: &usize, from_heap: &Vec<Val>, to_heap: &mut Vec<Val>, address_track: &mut HashMap<usize, usize>) {
+fn forward(from_addr: &usize, from_heap: &Vec<Val>, to_heap: &mut Vec<Val>, address_track: &mut HashMap<usize, usize>, stack: &mut Vec<Val>) {
     
     if !address_track.contains_key(from_addr) {
         println!("New chunk to be copied over");
@@ -174,6 +174,7 @@ fn forward(from_addr: &usize, from_heap: &Vec<Val>, to_heap: &mut Vec<Val>, addr
     }else {
         println!("Chunk was already copied over");
     }
+
     //to_heap.push(from_heap.get(root).unwrap());
 }
 
@@ -185,11 +186,15 @@ fn collect_garbage(heap: &mut Vec<Val>, stack: &mut Vec<Val>, size: u32) {
     println!("STACK LEN {}", stack.len()); 
     for index in 0..stack.len() {
         if let Val::Vaddr(from_addr) = stack.get(index).unwrap() {
-            forward(from_addr, &heap, &mut to_space, &mut address_track);
+            forward(from_addr, &heap, &mut to_space, &mut address_track, &mut stack);
+            stack.remove(index);
+            stack.insert(index, Val::Vaddr(*address_track.get(from_addr).unwrap()));
             //Pull out the old address value and replace it with the new address updated after the
             //forward function call
         }
     }
+
+    //heap = to_space;
     println!("GC end: heap_size = {} values", heap.len());
 
     if ((heap.len() as u32) + size) > HEAP_SIZE {
@@ -200,8 +205,8 @@ fn collect_garbage(heap: &mut Vec<Val>, stack: &mut Vec<Val>, size: u32) {
 fn main() -> io::Result<()>{
     let mut file_content = Vec::new();
     let mut stack_instr: Vec<Instr> = Vec::new();
-    let program_stack: Vec<Val> = Vec::new();
-    let program_heap: Vec<Val> = Vec::new();
+    let mut program_stack: Vec<Val> = Vec::new();
+    let mut program_heap: Vec<Val> = Vec::new();
 
 
     let args: Vec<String> = env::args().collect();
