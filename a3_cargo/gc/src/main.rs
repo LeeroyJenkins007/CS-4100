@@ -7,7 +7,7 @@ use std::fs::File;
 use std::io::BufReader;
 use byteorder::{BigEndian};
 use std::collections::HashMap;
-
+use std::char;
 
 const HEAP_SIZE: u32 = 1024;
 const STACK_SIZE: u32 = 1024;
@@ -36,6 +36,8 @@ impl FromBin for Instr {
             13 => {Instr::Ret},
             14 => {Instr::Branch},
             15 => {Instr::Halt},
+            16 => {Instr::Spawn},
+            20 => {Instr::Print},
             _ => panic!("Invalid Instruction"),
         }
     }
@@ -133,6 +135,8 @@ pub enum Instr {
     Ret,
     Branch,
     Halt,
+    Spawn,
+    Print,
 }
 
 #[derive(Debug, Clone)]
@@ -160,43 +164,105 @@ pub struct State {
     pub program: Vec<Instr>
 }
 
-fn forward(from_addr: &usize, from_heap: &Vec<Val>, to_heap: &mut Vec<Val>, address_track: &mut HashMap<usize, usize>, stack: &mut Vec<Val>) {
+fn copy_over(from_addr: &usize, address_track: &mut HashMap<usize, usize>, from_heap: &Vec<Val>, to_heap: &mut Vec<Val>) {
+    println!("Copying over!");
+    let mut new_to_heap_val = from_heap.get(*from_addr).unwrap().clone();
     
-    if !address_track.contains_key(from_addr) {
-        println!("New chunk to be copied over");
-        //let mut chunk = from_heap.get(from_addr.clone()).unwrap();
-        println!("From_addr = {}", *from_addr);
-        let chunk = from_heap.get(*from_addr).unwrap().clone();
-        println!("Chunk = {:?}", chunk);
-        //to_heap.push(*from_heap.get(*from_addr).unwrap());
-        to_heap.push(chunk);
+    to_heap.push(new_to_heap_val);
+    address_track.insert(*from_addr, to_heap.len() -1);
+    
+/*
+    if let Val::Vaddr(f_add) = new_to_heap_val {
+        println!("Is an address in the heap! Time to forward that!");
+        //forward();  
+    } else {
+        to_heap.push(new_to_heap_val);
         address_track.insert(*from_addr, to_heap.len() - 1);
+    }
+    */
+
+    //forward(from_addr, address_track, from_heap, to_heap);
+}
+
+fn forward(from_addr: &usize, address_track: &mut HashMap<usize, usize>, from_heap: &Vec<Val>, to_heap: &mut Vec<Val>) {
+    let mut heap_val = from_heap.get(*from_addr).unwrap().clone();
+
+    //If the value being copied over to 
+    if let Val::Vaddr(f_ad) = heap_val {
+        println!("Another ADDRESS!");
+        to_heap.push(from_heap.get(f_ad).unwrap().clone());
+        address_track.insert(f_ad, to_heap.len() - 1);
+        //forward();
+        
     }else {
-        println!("Chunk was already copied over");
+        println!("STOPPING HERE, NO MORE ADDRESSES TO FORWARD!");
+        //heap_val
+        //to_heap.push(heap_val);
+    }
+}
+
+fn copy(size_of_array: i32, from_addr: &usize, from_heap: &Vec<Val>, to_heap: &mut Vec<Val>) {
+    println!("Copying over from_heap to to_heap");
+    for index in 0..size_of_array {
+        let mut from_heap_val = from_heap.get(*from_addr + index as usize).unwrap().clone();
+        to_heap.push(from_heap_val);
     }
 
-    //to_heap.push(from_heap.get(root).unwrap());
 }
 
 fn collect_garbage(heap: &mut Vec<Val>, stack: &mut Vec<Val>, size: u32) {
     let mut to_space: Vec<Val> = Vec::new();
     let mut address_track: HashMap<usize, usize> = HashMap::new();
+    let mut next: u32 = 0;
+    let mut scan: u32 = 0;
 
     println!("GC start: heap_size = {} values", heap.len());
-    println!("STACK LEN {}", stack.len()); 
+
+    //FOR each root address in the stack
     for index in 0..stack.len() {
-        if let Val::Vaddr(from_addr) = stack.get(index).unwrap() {
-            forward(from_addr, &heap, &mut to_space, &mut address_track, &mut stack);
+        let mut stack_val = stack.get(index).unwrap().clone();
+        //If the value in the stack is an address, then proceed..
+        if let Val::Vaddr(from_addr) = stack_val {
+            //if the pointer to the from_heap has not been copied over yet, then update it
+            if !address_track.contains_key(&from_addr){
+                println!("New chunk to be copied over!");
+                address_track.insert(from_addr, to_space.len());
+                if let Val::Vsize(array_size) = heap.get(from_addr).unwrap().clone() {
+                    println!("This is an array to be copied over!");
+                    //let to_heap_len = to_space.len();
+                    //address_track.insert(from_addr, to_space.len());
+                    copy(array_size, &from_addr, &heap, &mut to_space);
+                    next = next + (array_size as u32);
+                }else {
+                    println!("Value in Heap is not a size value");
+                    next = next + 1;
+                }
+                //copy();
+                //copy over the Val in from_heap to the to_heap and update the hashmap
+                //copy_over(&from_addr, &mut address_track, &heap, &mut to_space);
+            }else {
+                println!("Chunk was already copied over!");
+            }
+            //either way the address need to be updated to the new address on the to_heap
             stack.remove(index);
-            stack.insert(index, Val::Vaddr(*address_track.get(from_addr).unwrap()));
-            //Pull out the old address value and replace it with the new address updated after the
-            //forward function call
+            stack.insert(index, Val::Vaddr(*address_track.get(&from_addr).unwrap()));
         }
+        //Otherwise, do nothing at all, ONLY concerned with addresses in the stack.
     }
 
-    //heap = to_space;
-    println!("GC end: heap_size = {} values", heap.len());
 
+    //Time to scan through the to_heap and search for addresses
+    while(scan < next){
+        println!("Scanning to_heap");
+        scan = scan + 1;
+    }
+
+    //Updates the stack to point to the new location of chunk that is now in the to_space
+    heap.clear();
+    heap.append(&mut to_space);
+    
+    println!("GC end: heap_size = {} values", heap.len());
+    
     if ((heap.len() as u32) + size) > HEAP_SIZE {
         panic!("Heap extends beyond {}, by adding {} to {}", HEAP_SIZE, size, heap.len());
     }
@@ -350,6 +416,11 @@ fn main() -> io::Result<()>{
                                 program_state.heap.push(unit.clone());
                             }
                         }else {
+                            //reccomended to just pass the state and thread
+                            //println!("THE STACK:");
+                            //println!("{:?}", program_state.stack);
+                            //println!("THE HEAP:");
+                            //println!("{:?}", program_state.heap);
                             collect_garbage(&mut program_state.heap, &mut program_state.stack, size as u32);
                             //panic!("Alloc expands Heap size beyond {}", HEAP_SIZE);
                         }
@@ -463,6 +534,18 @@ fn main() -> io::Result<()>{
                 Instr::Halt => {
                     program_state.halt = true;
                     println!("{:?}", program_state.stack.pop().unwrap());},
+//PRINT                
+                Instr::Print => {
+                    let val_to_be_print = program_state.stack.pop().unwrap();
+                    match val_to_be_print {
+                        Val::Vi32(int) => {
+                            print!("{}", char::from_u32(int as u32).unwrap());},
+                        _ => {panic!("Cannot print out values that are not I32");},
+                    }},
+//SPAWN       
+                Instr::Spawn => {
+                    let closure_address = program_state.stack.pop().unwrap();
+                    println!("SPAWN");},
             }
         }else {panic!("PC is greater than program length!");}
     }
