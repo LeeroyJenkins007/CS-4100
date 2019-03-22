@@ -164,50 +164,14 @@ pub struct State {
     pub program: Vec<Instr>
 }
 
-fn copy_over(from_addr: &usize, address_track: &mut HashMap<usize, usize>, from_heap: &Vec<Val>, to_heap: &mut Vec<Val>) {
-    println!("Copying over!");
-    let mut new_to_heap_val = from_heap.get(*from_addr).unwrap().clone();
-    
-    to_heap.push(new_to_heap_val);
-    address_track.insert(*from_addr, to_heap.len() -1);
-    
-/*
-    if let Val::Vaddr(f_add) = new_to_heap_val {
-        println!("Is an address in the heap! Time to forward that!");
-        //forward();  
-    } else {
-        to_heap.push(new_to_heap_val);
-        address_track.insert(*from_addr, to_heap.len() - 1);
-    }
-    */
-
-    //forward(from_addr, address_track, from_heap, to_heap);
-}
-
-fn forward(from_addr: &usize, address_track: &mut HashMap<usize, usize>, from_heap: &Vec<Val>, to_heap: &mut Vec<Val>) {
-    let mut heap_val = from_heap.get(*from_addr).unwrap().clone();
-
-    //If the value being copied over to 
-    if let Val::Vaddr(f_ad) = heap_val {
-        println!("Another ADDRESS!");
-        to_heap.push(from_heap.get(f_ad).unwrap().clone());
-        address_track.insert(f_ad, to_heap.len() - 1);
-        //forward();
-        
-    }else {
-        println!("STOPPING HERE, NO MORE ADDRESSES TO FORWARD!");
-        //heap_val
-        //to_heap.push(heap_val);
-    }
-}
-
+//copy from [from_addr] to [from_addr + size_of_array], from [from_heap] over to [to_heap]
 fn copy(size_of_array: i32, from_addr: &usize, from_heap: &Vec<Val>, to_heap: &mut Vec<Val>) {
-    println!("Copying over from_heap to to_heap");
-    for index in 0..size_of_array {
+    
+    //got from index -> index + size_of_array
+    for index in 0..size_of_array + 1 {
         let mut from_heap_val = from_heap.get(*from_addr + index as usize).unwrap().clone();
         to_heap.push(from_heap_val);
     }
-
 }
 
 fn collect_garbage(heap: &mut Vec<Val>, stack: &mut Vec<Val>, size: u32) {
@@ -218,30 +182,24 @@ fn collect_garbage(heap: &mut Vec<Val>, stack: &mut Vec<Val>, size: u32) {
 
     println!("GC start: heap_size = {} values", heap.len());
 
+    //println!("Stack: {:?}", stack);
     //FOR each root address in the stack
     for index in 0..stack.len() {
         let mut stack_val = stack.get(index).unwrap().clone();
         //If the value in the stack is an address, then proceed..
         if let Val::Vaddr(from_addr) = stack_val {
+            println!("Stack Address");
             //if the pointer to the from_heap has not been copied over yet, then update it
             if !address_track.contains_key(&from_addr){
-                println!("New chunk to be copied over!");
                 address_track.insert(from_addr, to_space.len());
                 if let Val::Vsize(array_size) = heap.get(from_addr).unwrap().clone() {
-                    println!("This is an array to be copied over!");
-                    //let to_heap_len = to_space.len();
-                    //address_track.insert(from_addr, to_space.len());
                     copy(array_size, &from_addr, &heap, &mut to_space);
                     next = next + (array_size as u32);
                 }else {
-                    println!("Value in Heap is not a size value");
+                    copy(1, &from_addr, &heap, &mut to_space);
                     next = next + 1;
                 }
-                //copy();
-                //copy over the Val in from_heap to the to_heap and update the hashmap
-                //copy_over(&from_addr, &mut address_track, &heap, &mut to_space);
             }else {
-                println!("Chunk was already copied over!");
             }
             //either way the address need to be updated to the new address on the to_heap
             stack.remove(index);
@@ -250,10 +208,40 @@ fn collect_garbage(heap: &mut Vec<Val>, stack: &mut Vec<Val>, size: u32) {
         //Otherwise, do nothing at all, ONLY concerned with addresses in the stack.
     }
 
-
+    //println!("{:?}", heap);
+    //println!("______________________________________________________________________");
+    println!("HEAP: {:?}", to_space);
     //Time to scan through the to_heap and search for addresses
-    while(scan < next){
+    while(scan <= next){
         println!("Scanning to_heap");
+        let mut to_heap_val = to_space.get(scan as usize).unwrap().clone();
+        println!("To Heap Val: {:?}", to_heap_val);
+        if let Val::Vaddr(to_addr) = to_heap_val {
+            println!("The value in the heap is an address: {}", scan);
+            //check if the address it points to has already been copied, and if not copy over and
+            //update address_tracker
+            if !address_track.contains_key(&to_addr) {
+                //It has not yet been copied over, so first copy then update teh address value
+                address_track.insert(to_addr, to_space.len());
+                if let Val::Vsize(from_array_size) = heap.get(to_addr).unwrap().clone() {
+                    //The value it points to is the start of an array
+                    copy(from_array_size, &to_addr, &heap, &mut to_space);
+                    next = next + (from_array_size as u32);
+                }else{
+                    //The value it points to is not an array size
+                    next = next + 1;
+                }
+            }else {
+                //They have already been transfered over, so just update the address value
+            }
+            
+            to_space.remove(scan as usize);
+            to_space.insert(scan as usize, Val::Vaddr(*address_track.get(&to_addr).unwrap()));
+
+        }else {
+            //Not an address
+            //scan = scan + 1;
+        }
         scan = scan + 1;
     }
 
