@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::char;
 
 const HEAP_SIZE: u32 = 1024;
-const STACK_SIZE: u32 = 1024;
+//const STACK_SIZE: u32 = 1024;
 
 pub trait FromBin {
         fn from_bin(iter: &mut Iter<u8>) -> Self;
@@ -169,7 +169,7 @@ fn copy(size_of_array: i32, from_addr: &usize, from_heap: &Vec<Val>, to_heap: &m
     
     //got from index -> index + size_of_array
     for index in 0..size_of_array + 1 {
-        let mut from_heap_val = from_heap.get(*from_addr + index as usize).unwrap().clone();
+        let from_heap_val = from_heap.get(*from_addr + index as usize).unwrap().clone();
         to_heap.push(from_heap_val);
     }
 }
@@ -184,7 +184,7 @@ fn collect_garbage(heap: &mut Vec<Val>, stack: &mut Vec<Val>, size: u32) {
 
     //FOR each root address in the stack
     for index in 0..stack.len() {
-        let mut stack_val = stack.get(index).unwrap().clone();
+        let stack_val = stack.get(index).unwrap().clone();
         //If the value in the stack is an address, then proceed..
         if let Val::Vaddr(from_addr) = stack_val {
             //if the pointer to the from_heap has not been copied over yet, then update it
@@ -207,8 +207,8 @@ fn collect_garbage(heap: &mut Vec<Val>, stack: &mut Vec<Val>, size: u32) {
     }
 
     //Time to scan through the to_heap and search for addresses
-    while(scan <= next && next > 0){
-        let mut to_heap_val = to_space.get(scan as usize).unwrap().clone();
+    while scan <= next && next > 0 {
+        let to_heap_val = to_space.get(scan as usize).unwrap().clone();
         if let Val::Vaddr(to_addr) = to_heap_val {
             //check if the address it points to has already been copied, and if not copy over and
             //update address_tracker
@@ -240,7 +240,7 @@ fn collect_garbage(heap: &mut Vec<Val>, stack: &mut Vec<Val>, size: u32) {
     eprintln!("GC end: heap_size = {} values", heap.len());
     
     if ((heap.len() as u32) + size) > HEAP_SIZE {
-        panic!("Heap extends beyond {}, by adding {} to {}", HEAP_SIZE, size, heap.len());
+        panic!("GC: Heap extends beyond {}, by adding {} to {}", HEAP_SIZE, size, heap.len());
     }
 }
 
@@ -489,7 +489,8 @@ fn instr(vector_of_states: &mut Vec<State>, program_size: u32, thread_number: us
 //HALT
                 Instr::Halt => {
                     program_state.halt = true;
-                    println!("{:?}", program_state.stack.pop().unwrap());},
+                    //println!("{:?}", program_state.stack.pop().unwrap());
+                    },
 //PRINT                
                 Instr::Print => {
                     let val_to_be_print = program_state.stack.pop().unwrap();
@@ -506,7 +507,7 @@ fn instr(vector_of_states: &mut Vec<State>, program_size: u32, thread_number: us
                     let mut new_thread_stack: Vec<Val> = Vec::new();
                     let mut new_thread_program: Vec<Instr> = Vec::new();
                     let mut funptr_location: Val;
-                    let mut funptr: u32;
+                    let funptr: u32;
 
                     if let Val::Vaddr(closure) = closure_address {
                         funptr_location = program_state.heap.get(closure + (1 as usize)).unwrap().clone();
@@ -533,7 +534,7 @@ fn instr(vector_of_states: &mut Vec<State>, program_size: u32, thread_number: us
                     //Giving the new thread a copy of the instruction list
                     new_thread_program = program_state.program.clone();
 
-                    let mut new_thread = State {halt: false, pc: funptr, fp: 0, stack: new_thread_stack, heap: heap_copy, program: new_thread_program};
+                    let new_thread = State {halt: false, pc: funptr, fp: 0, stack: new_thread_stack, heap: heap_copy, program: new_thread_program};
 
                     vector_of_states.push(new_thread);
                     
@@ -548,8 +549,10 @@ fn instr(vector_of_states: &mut Vec<State>, program_size: u32, thread_number: us
 fn main() -> io::Result<()>{
     let mut file_content = Vec::new();
     let mut stack_instr: Vec<Instr> = Vec::new();
-    let mut program_stack: Vec<Val> = Vec::new();
-    let mut program_heap: Vec<Val> = Vec::new();
+    let program_stack: Vec<Val> = Vec::new();
+    let program_heap: Vec<Val> = Vec::new();
+    let mut halted_threads: Vec<bool> = Vec::new();
+    let mut program_halted: bool = false;
 
     let quantum: u32 = 3;
     let mut thread_states: Vec<State> = Vec::new();
@@ -566,25 +569,51 @@ fn main() -> io::Result<()>{
         stack_instr.push(Instr::from_bin(&mut iterator));
     }
 
-    let mut main_program_state = State { halt: false, pc: 0, fp: 0, stack: program_stack, heap: program_heap, program: stack_instr};
+    let main_program_state = State { halt: false, pc: 0, fp: 0, stack: program_stack, heap: program_heap, program: stack_instr};
    
     thread_states.push(main_program_state);
 
+
     //change to while gc state does not halt
-    while !thread_states[0].halt && threads_halted{
+    while !thread_states[0].halt{
         //for mut each_state in &mut thread_states {
         for index_of_thread in 0..thread_states.len() {
             for number_of_exec in 1..quantum + 1 {
                 //If this specific thread state has halted, then no need to continue the loop
                 if (!thread_states[index_of_thread].halt) {
                     //println!("Thread: {}, Iteration: {}", index_of_thread, number_of_exec);
+                    /*
+                    if halted_threads.len() < thread_states.len() {
+                        for udex in 1..(thread_states.len() - halted_threads.len()) {
+                            halted_threads.push(false); 
+                        }
+                    }*/
+
+
                     instr(&mut thread_states, program_size, index_of_thread);
                 }else {
+                    //halted_threads[index_of_thread] = true;
+                    /*
+                    for check in &halted_threads {
+                        if *check {
+                            program_halted = true;
+                        }else {
+                            program_halted = false;
+                            break;
+                        }
+                    }
+                    */
+                    /*
+                    if index_of_thread == 0 && thread_states.len() >{
+                        
+                    }else {
+                        println!("{:?}", thread_states[index_of_thread].stack.pop().unwrap());
+                    }*/
                     break;
                 }
-            }
-        }
-    }
+            }//Number of executions per thread....set to whatever quantum is
+        }//Each_thread
+    }//While-loop
 
     Ok(())
 }
