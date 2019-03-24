@@ -245,10 +245,28 @@ fn collect_garbage(heap: &mut Vec<Val>, stack: &mut Vec<Val>, size: u32) {
 }
 
 
-fn instr(vector_of_states: &mut Vec<State>, program_size: u32, thread_number: usize) {
 
-    let mut program_state  = &mut vector_of_states[thread_number];
-    //while !program_state.halt {
+fn main() -> io::Result<()>{
+    let mut file_content = Vec::new();
+    let mut stack_instr: Vec<Instr> = Vec::new();
+    let mut program_stack: Vec<Val> = Vec::new();
+    let mut program_heap: Vec<Val> = Vec::new();
+
+    let args: Vec<String> = env::args().collect();
+    let file = File::open(&args[1])?;
+    let mut file = BufReader::new(file);
+
+        file.read_to_end(&mut file_content);
+    let mut iterator = file_content.iter();
+    let program_size: u32 = u32::from_bin(&mut iterator);
+    file_content.iter().next();
+    for _i in 1..program_size + 1 {
+        stack_instr.push(Instr::from_bin(&mut iterator));
+    }
+
+    let mut program_state = State { halt: false, pc: 0, fp: 0, stack: program_stack, heap: program_heap, program: stack_instr};
+
+    while !program_state.halt {
         program_state.pc = program_state.pc + 1;
         if program_state.pc - 1 < program_size {
             match program_state.program.get((program_state.pc - 1) as usize).unwrap() {
@@ -501,89 +519,9 @@ fn instr(vector_of_states: &mut Vec<State>, program_size: u32, thread_number: us
 //SPAWN       
                 Instr::Spawn => {
                     let closure_address = program_state.stack.pop().unwrap();
-                    //println!("SPAWN");
-                    let heap_copy = program_state.heap.clone();
-                    let mut new_thread_stack: Vec<Val> = Vec::new();
-                    let mut new_thread_program: Vec<Instr> = Vec::new();
-                    let mut funptr_location: Val;
-                    let mut funptr: u32;
-
-                    if let Val::Vaddr(closure) = closure_address {
-                        funptr_location = program_state.heap.get(closure + (1 as usize)).unwrap().clone();
-                        if let Val::Vloc(location) = funptr_location {
-                            funptr = location;
-                            //println!("Location: {}", funptr);
-                        }else {
-                            panic!("SPAWN: closure address in stack does not point to a Vloc");
-                        }
-                        //println!("Just Making sure this works so far: {:?}", funptr);
-                    }else {
-                        panic!("SPAWN: Value in stack is not an address to the heap!");
-                    }
-                    
-                    //Constructing the stack to give the new thread
-                    new_thread_stack.push(closure_address.clone());
-                    new_thread_stack.push(Val::Vunit);
-                    //ret_fp
-                    new_thread_stack.push(Val::Vloc(program_state.fp));
-                    //ret_pc force a halt on "returning"
-                    let halt_location: u32 = program_state.program.len() as u32- 1;
-                    new_thread_stack.push(Val::Vloc(halt_location));
-
-                    //Giving the new thread a copy of the instruction list
-                    new_thread_program = program_state.program.clone();
-
-                    let mut new_thread = State {halt: false, pc: funptr, fp: 0, stack: new_thread_stack, heap: heap_copy, program: new_thread_program};
-
-                    vector_of_states.push(new_thread);
-                    
-
-                },
+                    println!("SPAWN");},
             }
         }else {panic!("MAIN: PC is greater than program length!");}
-    //}
-
-}
-
-fn main() -> io::Result<()>{
-    let mut file_content = Vec::new();
-    let mut stack_instr: Vec<Instr> = Vec::new();
-    let mut program_stack: Vec<Val> = Vec::new();
-    let mut program_heap: Vec<Val> = Vec::new();
-
-    let quantum: u32 = 3;
-    let mut thread_states: Vec<State> = Vec::new();
-
-    let args: Vec<String> = env::args().collect();
-    let file = File::open(&args[1])?;
-    let mut file = BufReader::new(file);
-
-        file.read_to_end(&mut file_content);
-    let mut iterator = file_content.iter();
-    let program_size: u32 = u32::from_bin(&mut iterator);
-    file_content.iter().next();
-    for _i in 1..program_size + 1 {
-        stack_instr.push(Instr::from_bin(&mut iterator));
-    }
-
-    let mut main_program_state = State { halt: false, pc: 0, fp: 0, stack: program_stack, heap: program_heap, program: stack_instr};
-   
-    thread_states.push(main_program_state);
-
-    //change to while gc state does not halt
-    while !thread_states[0].halt && threads_halted{
-        //for mut each_state in &mut thread_states {
-        for index_of_thread in 0..thread_states.len() {
-            for number_of_exec in 1..quantum + 1 {
-                //If this specific thread state has halted, then no need to continue the loop
-                if (!thread_states[index_of_thread].halt) {
-                    //println!("Thread: {}, Iteration: {}", index_of_thread, number_of_exec);
-                    instr(&mut thread_states, program_size, index_of_thread);
-                }else {
-                    break;
-                }
-            }
-        }
     }
 
     Ok(())
