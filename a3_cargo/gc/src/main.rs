@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::char;
 
 const HEAP_SIZE: u32 = 1024;
-//const STACK_SIZE: u32 = 1024;
+static mut HALT_LOCATION: u32 = 0;
 
 pub trait FromBin {
         fn from_bin(iter: &mut Iter<u8>) -> Self;
@@ -248,7 +248,6 @@ fn collect_garbage(heap: &mut Vec<Val>, stack: &mut Vec<Val>, size: u32) {
 fn instr(vector_of_states: &mut Vec<State>, program_size: u32, thread_number: usize) {
 
     let mut program_state  = &mut vector_of_states[thread_number];
-    //while !program_state.halt {
         program_state.pc = program_state.pc + 1;
         if program_state.pc - 1 < program_size {
             match program_state.program.get((program_state.pc - 1) as usize).unwrap() {
@@ -440,7 +439,7 @@ fn instr(vector_of_states: &mut Vec<State>, program_size: u32, thread_number: us
 //SETFRAME
                 Instr::SetFrame(u) => {
                     program_state.stack.push(Val::Vloc(program_state.fp));
-                    program_state.fp = ((program_state.stack.len() - (*u as usize) - 1) as u32);
+                    program_state.fp = (program_state.stack.len() - (*u as usize) - 1) as u32;
                     },
 //CALL
                 Instr::Call => {
@@ -488,9 +487,7 @@ fn instr(vector_of_states: &mut Vec<State>, program_size: u32, thread_number: us
                     }},
 //HALT
                 Instr::Halt => {
-                    program_state.halt = true;
-                    //println!("{:?}", program_state.stack.pop().unwrap());
-                    },
+                    program_state.halt = true;},
 //PRINT                
                 Instr::Print => {
                     let val_to_be_print = program_state.stack.pop().unwrap();
@@ -502,22 +499,19 @@ fn instr(vector_of_states: &mut Vec<State>, program_size: u32, thread_number: us
 //SPAWN       
                 Instr::Spawn => {
                     let closure_address = program_state.stack.pop().unwrap();
-                    //println!("SPAWN");
                     let heap_copy = program_state.heap.clone();
                     let mut new_thread_stack: Vec<Val> = Vec::new();
                     let mut new_thread_program: Vec<Instr> = Vec::new();
-                    let mut funptr_location: Val;
+                    let funptr_location: Val;
                     let funptr: u32;
 
                     if let Val::Vaddr(closure) = closure_address {
                         funptr_location = program_state.heap.get(closure + (1 as usize)).unwrap().clone();
                         if let Val::Vloc(location) = funptr_location {
                             funptr = location;
-                            //println!("Location: {}", funptr);
                         }else {
                             panic!("SPAWN: closure address in stack does not point to a Vloc");
                         }
-                        //println!("Just Making sure this works so far: {:?}", funptr);
                     }else {
                         panic!("SPAWN: Value in stack is not an address to the heap!");
                     }
@@ -528,7 +522,10 @@ fn instr(vector_of_states: &mut Vec<State>, program_size: u32, thread_number: us
                     //ret_fp
                     new_thread_stack.push(Val::Vloc(program_state.fp));
                     //ret_pc force a halt on "returning"
-                    let halt_location: u32 = program_state.program.len() as u32- 1;
+                    let halt_location: u32;
+                    unsafe {
+                        halt_location = HALT_LOCATION.clone();
+                    }
                     new_thread_stack.push(Val::Vloc(halt_location));
 
                     //Giving the new thread a copy of the instruction list
@@ -542,7 +539,6 @@ fn instr(vector_of_states: &mut Vec<State>, program_size: u32, thread_number: us
                 },
             }
         }else {panic!("MAIN: PC is greater than program length!");}
-    //}
 
 }
 
@@ -551,8 +547,6 @@ fn main() -> io::Result<()>{
     let mut stack_instr: Vec<Instr> = Vec::new();
     let program_stack: Vec<Val> = Vec::new();
     let program_heap: Vec<Val> = Vec::new();
-    let mut halted_threads: Vec<bool> = Vec::new();
-    let mut program_halted: bool = false;
 
     let quantum: u32 = 3;
     let mut thread_states: Vec<State> = Vec::new();
@@ -569,51 +563,50 @@ fn main() -> io::Result<()>{
         stack_instr.push(Instr::from_bin(&mut iterator));
     }
 
+
+    unsafe {
+        let mut counter: u32 = 0;
+        //Cheap way to do this
+        for inst in &stack_instr {
+            if let Instr::Halt = inst {
+                HALT_LOCATION = counter;
+                break;
+            }
+            counter = counter + 1;
+        }   
+    
+
+    }
+    
     let main_program_state = State { halt: false, pc: 0, fp: 0, stack: program_stack, heap: program_heap, program: stack_instr};
    
     thread_states.push(main_program_state);
 
+    let mut all_threads_are_halted: Vec<bool> = Vec::new();
+    all_threads_are_halted.push(false);
 
     //change to while gc state does not halt
     while !thread_states[0].halt{
-        //for mut each_state in &mut thread_states {
         for index_of_thread in 0..thread_states.len() {
-            for number_of_exec in 1..quantum + 1 {
+
+            if thread_states.len() > all_threads_are_halted.len() {
+                for _run in 0..(thread_states.len() - all_threads_are_halted.len()) {
+                    all_threads_are_halted.push(false);
+                }
+            }
+
+            for _number_of_exec in 1..quantum + 1 {
                 //If this specific thread state has halted, then no need to continue the loop
                 if (!thread_states[index_of_thread].halt) {
-                    //println!("Thread: {}, Iteration: {}", index_of_thread, number_of_exec);
-                    /*
-                    if halted_threads.len() < thread_states.len() {
-                        for udex in 1..(thread_states.len() - halted_threads.len()) {
-                            halted_threads.push(false); 
-                        }
-                    }*/
-
-
                     instr(&mut thread_states, program_size, index_of_thread);
                 }else {
-                    //halted_threads[index_of_thread] = true;
-                    /*
-                    for check in &halted_threads {
-                        if *check {
-                            program_halted = true;
-                        }else {
-                            program_halted = false;
-                            break;
-                        }
-                    }
-                    */
-                    /*
-                    if index_of_thread == 0 && thread_states.len() >{
-                        
-                    }else {
-                        println!("{:?}", thread_states[index_of_thread].stack.pop().unwrap());
-                    }*/
                     break;
                 }
             }//Number of executions per thread....set to whatever quantum is
         }//Each_thread
     }//While-loop
+
+    println!("{:?}", thread_states[0].stack.pop().unwrap());
 
     Ok(())
 }
