@@ -5,3 +5,4 @@ authors = ["gjenkins"]
 edition = "2018"
 
 [dependencies]
+regex = "1"

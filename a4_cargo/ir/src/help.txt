@@ -1,0 +1,7 @@
+-> is this a token as one? 
+are we dealing with syntax errors??
+in (funptf f) just going to appear as f or do I have to figure out if what I found is a variable or a funtion name?
+
+% represents the start of the main expression to execute.
+
+
