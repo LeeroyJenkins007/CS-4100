@@ -1,4 +1,3 @@
-///File for the lexer part of the program!
 use regex::Regex;
 
 
@@ -9,14 +8,15 @@ pub enum Token {
     FALSE_VAL,
     TT_VAL,
     VARIABLE,
+    RETARROW,
     LET,
+    EXPSTART,
     SEQ,
     ALLOC,
     SET,
     GET,
     COND,
-    FUN,
-    FUNPTR,
+    FUNDECL,
     CALL,
     LEFT_PAREN,
     RIGHT_PAREN,
@@ -65,6 +65,8 @@ macro_rules! lex_upd {
 
 fn lex<'a>(l: &mut LexerState<'a>) -> Result<Token, String> {
     let s = l.rest;
+    let int_regex = Regex::new(r"^\A[[:digit:]]+").unwrap();
+    let var_regex = Regex::new(r"^\A[[:alpha:]]+").unwrap();
 
     //Comments
     if s.starts_with("/*") {
@@ -113,10 +115,12 @@ fn lex<'a>(l: &mut LexerState<'a>) -> Result<Token, String> {
    else if s.starts_with(")") { lex_upd!(l, 1, Token::RIGHT_PAREN)}
    else if s.starts_with("+") { lex_upd!(l, 1, Token::PLUS)}
    else if s.starts_with("*") { lex_upd!(l, 1, Token::TIMES)}
+   else if s.starts_with("->") { lex_upd!(l, 2, Token::RETARROW)}
    else if s.starts_with("-") { lex_upd!(l, 1, Token::MINUS)}
    else if s.starts_with("/") { lex_upd!(l, 1, Token::DIVISION)}
    else if s.starts_with("<") { lex_upd!(l, 1, Token::LT)}
    else if s.starts_with("==") { lex_upd!(l, 2, Token::EQ)}
+   else if s.starts_with("%") { lex_upd!(l, 1, Token::EXPSTART)}
    else if s.starts_with("neg") { lex_upd!(l, 3, Token::NEG)}
    else if s.starts_with("let") { lex_upd!(l, 3, Token::LET)}
    else if s.starts_with("seq") { lex_upd!(l, 3, Token::SEQ)}
@@ -124,7 +128,7 @@ fn lex<'a>(l: &mut LexerState<'a>) -> Result<Token, String> {
    else if s.starts_with("set") { lex_upd!(l, 3, Token::SET)}
    else if s.starts_with("get") { lex_upd!(l, 3, Token::GET)}
    else if s.starts_with("cond") { lex_upd!(l, 4, Token::COND)}
-   else if s.starts_with("fun") { lex_upd!(l, 3, Token::FUN)}
+   else if s.starts_with("fun") { lex_upd!(l, 3, Token::FUNDECL)}
    else if s.starts_with("call") { lex_upd!(l, 4, Token::CALL)}
    else if s.starts_with("print") { lex_upd!(l, 5, Token::PRINT)}
    else if s.starts_with("spawn") { lex_upd!(l, 5, Token::SPAWN)}
@@ -137,8 +141,33 @@ fn lex<'a>(l: &mut LexerState<'a>) -> Result<Token, String> {
    else if s.starts_with("tt") { lex_upd!(l, 2, Token::TT_VAL)}
     
    //If int, variable, fun name
+   else if int_regex.is_match(s) {
+       match int_regex.find(s){
+           Some(mat) => {
+               assert_eq!(mat.start(), 0);
+               let (n, rest) = s.split_at(mat.end());
+               l.info.incr_col(mat.end() as u64);
+               l.rest = rest;
+               if l.comment_depth > 0 { lex(l) }
+               else { Ok(Token::I32_VAL(n.parse::<i32>().unwrap()))}
+           },
+           None => {
+               if s.len() > 0 {
+                   if l.comment_depth > 0 {
+                       l.info.incr_col(1);
+                       l.rest = l.rest.split_at(1).1;
+                       lex(l)
+                   } else {
+                       Err(format!(r"unexpected token '{}'", s.split_at(1).0))
+                   }
+               } else {
+                   Err(format!("unexpected end of program"))
+               }
+           },
+       }
+   }
    else {
-    lex_upd!(l, 1, Token::VARIABLE) 
+    lex_upd!(l, 1, Token::VARIABLE)
    }
 
 

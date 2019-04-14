@@ -1,8 +1,8 @@
 [package]
 name = "ir"
 version = "0.1.0"
-authors = ["gjenkins"]
-edition = "2018"
+authors = ["Greg Jenkins"]
+edition = "2019"
 
 [dependencies]
 regex = "1"
