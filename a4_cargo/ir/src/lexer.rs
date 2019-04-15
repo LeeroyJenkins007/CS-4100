@@ -7,7 +7,7 @@ pub enum Token {
     TRUE_VAL,
     FALSE_VAL,
     TT_VAL,
-    VARIABLE,
+    VARIABLE(String),
     RETARROW,
     LET,
     EXPSTART,
@@ -167,9 +167,32 @@ fn lex<'a>(l: &mut LexerState<'a>) -> Result<Token, String> {
        }
    }
    else {
-    lex_upd!(l, 1, Token::VARIABLE)
+       match var_regex.find(s) {
+           Some(mat) => {
+               assert_eq!(mat.start(), 0);
+               let (n, rest) = s.split_at(mat.end());
+               l.info.incr_col(mat.end() as u64);
+               l.rest = rest;
+               if l.comment_depth > 0 { lex(l) }
+               else { Ok(Token::VARIABLE(n.to_owned()))}
+                //println!("VARIABLE: {}", s.clone().to_string());
+                //lex_upd!(l, 1, Token::VARIABLE(s.to_string()))
+           },
+           None => {
+            if s.len() > 0 {
+                if l.comment_depth > 0 {
+                    l.info.incr_col(1);
+                    l.rest = l.rest.split_at(1).1;
+                    lex(l)
+                } else {
+                    Err(format!(r"unexpected token '{}'", s.split_at(1).0))
+                }
+            } else {
+                Err(format!("unexpected end of program"))
+            }
+           },
+       }
    }
-
 
 
 
