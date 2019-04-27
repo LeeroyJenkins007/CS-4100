@@ -1,0 +1,13 @@
+<Fnlist> ::= <Fn><Fnlist>
+	| e
+<Fn> ::= (fun <id> <Paramlist> -> <Type>) <Explist>
+
+ID("fun name") (lexer)
+
+<Val> ::= <int>
+	| true | false
+	| tt
+
+<Exp> ::= <Val>
+	| <Id>
+	| ...

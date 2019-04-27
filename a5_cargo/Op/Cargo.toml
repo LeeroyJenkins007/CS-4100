@@ -1,0 +1,9 @@
+[package]
+name = "Op"
+version = "0.1.0"
+authors = ["gjenkins"]
+edition = "2018"
+
+[dependencies]
+
+regex = "1"
