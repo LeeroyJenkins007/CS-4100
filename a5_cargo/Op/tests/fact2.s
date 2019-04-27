@@ -19,6 +19,7 @@ var 3
 push 0
 var 0
 set
+push tt
 pop
 push undef
 var 3

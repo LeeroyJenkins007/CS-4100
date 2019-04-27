@@ -119,11 +119,13 @@ var 1
 var 0
 var 4
 set
+push tt
 pop
 var 2
 var 0
 push true
 set
+push tt
 pop
 var 4
 store 4

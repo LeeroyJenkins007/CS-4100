@@ -229,6 +229,7 @@ pub fn compile(e: &Exp, prho: &mut HashMap<String, u32>) -> Vec<Instr> {
             is.append(&mut is_idx);
             is.append(&mut is_e);
             is.push(Set);
+            is.push(Push(Vunit));
             is
         },
 ///Cond

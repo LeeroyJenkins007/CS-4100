@@ -16,6 +16,7 @@ var 0
 push 23
 push 42
 set
+push tt
 pop
 var 0
 push 23
