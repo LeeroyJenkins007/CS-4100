@@ -20,7 +20,6 @@ fn fresh_label() -> String {
 
 fn incr_loc(rho: &mut HashMap<String, u32>) {
     if let Some(inc) = rho.get_mut("$$") {
-        //println!("Incrementing rho");
         *inc = *inc + 1;
     }
 }
@@ -47,7 +46,6 @@ pub fn compile_fun(fun: &Fun, prho: &mut HashMap<String, u32>) -> Vec<Instr> {
    
     for param in &fun.params {
         if !rho.contains_key(&param.var.clone()) {
-            //println!("NEW PARAM");
             rho.insert(param.var.to_owned().clone(), counter);
             counter = counter + 1;
         }
@@ -72,12 +70,10 @@ pub fn compile_explist(explist: &Vec<Exp>, prho: &mut HashMap<String, u32>) -> V
 
 pub fn compile(e: &Exp, prho: &mut HashMap<String, u32>) -> Vec<Instr> {
     let mut rho = prho;
-    //println!("RHO STATUS: {:?}", rho);
 
     match e {
 ///Prog
         EProg(prog) => {
-            //incr_loc(&mut rho);
             let mut ret: Vec<Instr> = Vec::new();
             ret.push(SetFrame(0));
             ret.push(Push(Val::Vlabel("Lmain".to_string())));
@@ -109,9 +105,7 @@ pub fn compile(e: &Exp, prho: &mut HashMap<String, u32>) -> Vec<Instr> {
             let mut is_rhs = compile(&b.rhs, &mut rho);
             let mut is_op = 
                 match b.op.clone() {
-                    Plus => {
-                        //println!("COMPILE: PLUS");
-                        vec![Binary(Plus)]},
+                    Plus => vec![Binary(Plus)],
                     Times => vec![Binary(Times)],
                     Minus => vec![Binary(Minus)],
                     Divide => vec![Binary(Divide)],
@@ -159,10 +153,7 @@ pub fn compile(e: &Exp, prho: &mut HashMap<String, u32>) -> Vec<Instr> {
             let mut is_exp1 = compile(&l.exp1, &mut rho);
             let mut is_exp2 = compile(&l.exp2, &mut rho);
             let mut is = vec![];
-            //is.push(IUnit);
-            //let mut fnlist = compile_funlist(&prog.funlist, &mut rho);
             is.push(Push(Vundef));
-            //incr_loc(&mut rho);
             is.append(&mut is_exp1);
             is.append(&mut is_var);
             is.append(&mut is_exp2);
@@ -173,7 +164,6 @@ pub fn compile(e: &Exp, prho: &mut HashMap<String, u32>) -> Vec<Instr> {
         },
 ///Call
         ECall(c) => {
-            //let mut funp = compile(&c.funptr, &mut rho);
             let mut vecexp = compile_explist(&c.args, &mut rho);
             let mut funp = compile(&c.funptr, &mut rho);
             let mut is = vec![];
@@ -193,16 +183,6 @@ pub fn compile(e: &Exp, prho: &mut HashMap<String, u32>) -> Vec<Instr> {
             is.push(Ret);
             is
         },
-///Fun
-        EFun(f) => {
-            //let mut is_fname = compile(&f.name);
-            //let mut is_fparams = compile(&f.params);
-            //let mut is_retty = compile(&f.retty);
-            let mut is_exp = compile(&f.body, &mut rho);
-            let mut is = vec![];
-            is.append(&mut is_exp);
-            is
-        },
 ///Alloc
         EAlloc(a) => {
             decr_loc(&mut rho);
@@ -215,28 +195,11 @@ pub fn compile(e: &Exp, prho: &mut HashMap<String, u32>) -> Vec<Instr> {
             is.append(&mut is_op);
             is
         },
-/*
-        EVar(v) => {
-            let mut is = vec![];
-            let mut is_vec = vec![];
-            if rho.contains_key(&v.clone()) {
-                //println!("fresh Variable");
-                is_vec.push(Var(*rho.get(&v.clone()).unwrap()));
-            } else {
-                let mut var_val = rho.get_mut("$$").unwrap().clone();
-                rho.insert(v.to_owned().clone(),var_val);
-                is_vec.push(Store(var_val));
-            }
-            is.append(&mut is_vec);
-            is
-        },
-*/
 ///Id
         EId(v) => {
             let mut is = vec![];
             let mut is_vec = vec![];
             if rho.contains_key(&v.clone()) {
-                //println!("fresh Variable");
                 is_vec.push(Var(*rho.get(&v.clone()).unwrap()));
             } else {
                 let mut var_val = rho.get_mut("$$").unwrap().clone();
@@ -274,16 +237,11 @@ pub fn compile(e: &Exp, prho: &mut HashMap<String, u32>) -> Vec<Instr> {
             let mut is_exp1 = compile(&c.e1, &mut rho);
             let mut is_exp2 = compile(&c.e2, &mut rho);
             let mut _Lthen = fresh_label();
-            //let mut _Lelse = fresh_label();
             let mut _Lend = fresh_label();
             let mut is = vec![];
             is.append(&mut is_cond);
             is.push(Push(Vlabel(_Lthen.clone())));
             is.push(Branch);
-            //is.push(Push(Vbool(true)));
-            //is.push(Push(Vlabel(_Lelse.clone())));
-            //is.push(Branch);
-            //is.push(Label(_Lthen.clone() + ":"));
             is.append(&mut is_exp2);
             is.push(Push(Vbool(true)));
             is.push(Push(Vlabel(_Lend.clone())));

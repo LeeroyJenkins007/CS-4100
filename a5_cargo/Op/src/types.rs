@@ -181,12 +181,9 @@ pub struct Callexp {
 pub enum Exp {
     EI32(i32),
     EId(String),
-    //EVal(Value),
     EUnit,
-    //EVar(String),
     EBool(bool),
     EProg(Box<Prog>),
-    EFun(Box<Fun>),
     EBinop(Box<Binexp>),
     EUnop(Box<Unexp>),
     ESeq(Box<Seqexp>),

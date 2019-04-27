@@ -20,7 +20,6 @@ push 0
 var 0
 set
 pop
-pop
 push undef
 var 3
 push 0

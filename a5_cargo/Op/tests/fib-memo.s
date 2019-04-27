@@ -120,12 +120,10 @@ var 0
 var 4
 set
 pop
-pop
 var 2
 var 0
 push true
 set
-pop
 pop
 var 4
 store 4

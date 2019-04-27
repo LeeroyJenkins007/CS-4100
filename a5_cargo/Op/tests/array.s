@@ -17,7 +17,6 @@ push 23
 push 42
 set
 pop
-pop
 var 0
 push 23
 get
